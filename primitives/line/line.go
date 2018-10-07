@@ -1,8 +1,12 @@
 package line
 
-import "github.com/gotk3/gotk3/cairo"
+import (
+	"github.com/gotk3/gotk3/cairo"
+	"github.com/kislenko-artem/gopaint/property/color"
+)
 
 type Line struct {
+	color.Color
 	XStart float64
 	YStart float64
 	XEnd   float64
@@ -11,8 +15,8 @@ type Line struct {
 	start bool
 }
 
-func New() *Line {
-	return &Line{}
+func New(color color.Color) *Line {
+	return &Line{Color: color}
 }
 
 func (l *Line) IsWait() bool {
@@ -35,7 +39,7 @@ func (l *Line) SetStop(x, y float64) {
 }
 
 func (l *Line) SetColor(cr *cairo.Context) {
-	cr.SetSourceRGB(0, 0, 0)
+	cr.SetSourceRGB(l.RGB.R, l.RGB.G, l.RGB.B)
 }
 
 func (l *Line) Draw(cr *cairo.Context) {

@@ -10,24 +10,23 @@ import (
 
 	"github.com/kislenko-artem/gopaint/primitives"
 	ln "github.com/kislenko-artem/gopaint/primitives/line"
+	"github.com/kislenko-artem/gopaint/property/color"
 )
 
 var (
-	//line primitives.Line
+	baseColor   color.Color
 	objects     []primitives.Primitive
 	lineCounter = -1
 )
 
 func mainInit(mainWin *gtk.ApplicationWindow) {
-	// Преобразуем из объекта именно окно типа gtk.Window
-	// и соединяем с сигналом "destroy" чтобы можно было закрыть
-	// приложение при закрытии окна
+
 	mainWin.Connect("destroy", func() {
 		gtk.MainQuit()
 	})
 
 	mainWin.Connect("button-press-event", func(win *gtk.ApplicationWindow, ev *gdk.Event) {
-		line := ln.New()
+		line := ln.New(baseColor)
 		lineCounter++
 		objects = append(objects, line)
 		event := &gdk.EventButton{Event: ev}
@@ -35,6 +34,9 @@ func mainInit(mainWin *gtk.ApplicationWindow) {
 	})
 
 	mainWin.Connect("motion-notify-event", func(win *gtk.ApplicationWindow, ev *gdk.Event) {
+		if lineCounter < 0 {
+			return
+		}
 		if !objects[lineCounter].IsWait() {
 			return
 		}
@@ -44,15 +46,17 @@ func mainInit(mainWin *gtk.ApplicationWindow) {
 	})
 
 	mainWin.Connect("button-release-event", func(win *gtk.ApplicationWindow, ev *gdk.Event) {
+		if lineCounter < 0 {
+			return
+		}
 		event := &gdk.EventButton{Event: ev}
 		objects[lineCounter].SetStop(event.X(), event.Y())
 		objects[lineCounter].Release()
 		win.QueueDraw()
 	})
-	// Set the default window size.
+
 	mainWin.SetDefaultSize(800, 600)
 
-	// Отображаем все виджеты в окне
 	mainWin.ShowAll()
 }
 
@@ -69,38 +73,50 @@ func drawWindow(drawWindow *gtk.DrawingArea) {
 
 }
 
+func colorPicker(picker *gtk.ColorButton) {
+	picker.Connect("color-set", func(obj *glib.Object) {
+		rgb, err := obj.GetProperty("rgba")
+		if err != nil {
+			log.Fatal(err)
+		}
+		values := rgb.(*gdk.RGBA).Floats()
+		baseColor.RGB.R = values[0]
+		baseColor.RGB.G = values[1]
+		baseColor.RGB.B = values[2]
+	})
+}
+
 func main() {
 	var (
 		err error
 		b   *gtk.Builder
 		obj glib.IObject
 	)
-	// Инициализируем GTK.
+
 	gtk.Init(nil)
 
-	// Создаём билдер
 	if b, err = gtk.BuilderNew(); err != nil {
 		log.Fatal("Ошибка:", err)
 	}
 
-	// Загружаем в билдер окно из файла Glade
 	if err = b.AddFromFile("main.glade"); err != nil {
 		log.Fatal("Ошибка:", err)
 	}
 
-	// Получаем объект главного окна по ID
 	if obj, err = b.GetObject("window_main"); err != nil {
 		log.Fatal("Ошибка:", err)
 	}
-
 	mainInit(obj.(*gtk.ApplicationWindow))
 
-	// Получаем объект главного окна по ID
 	if obj, err = b.GetObject("window_drawing"); err != nil {
 		log.Fatal("Ошибка:", err)
 	}
 	drawWindow(obj.(*gtk.DrawingArea))
-	// Выполняем главный цикл GTK (для отрисовки). Он остановится когда
-	// выполнится gtk.MainQuit()
+
+	if obj, err = b.GetObject("color_picker"); err != nil {
+		log.Fatal("Ошибка:", err)
+	}
+	colorPicker(obj.(*gtk.ColorButton))
+
 	gtk.Main()
 }
