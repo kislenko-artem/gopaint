@@ -1,6 +1,6 @@
 package line
 
-import "../../primitives"
+import "github.com/gotk3/gotk3/cairo"
 
 type Line struct {
 	XStart float64
@@ -11,9 +11,8 @@ type Line struct {
 	start bool
 }
 
-func New() primitives.Line {
-	var line primitives.Line = &Line{}
-	return line
+func New() *Line {
+	return &Line{}
 }
 
 func (l *Line) IsWait() bool {
@@ -30,15 +29,17 @@ func (l *Line) SetStart(x, y float64) {
 	l.start = true
 }
 
-func (l *Line) SetEnd(x, y float64) {
+func (l *Line) SetStop(x, y float64) {
 	l.XEnd = x
 	l.YEnd = y
 }
 
-func (l *Line) GetStart() (x float64, y float64) {
-	return l.XStart, l.YStart
+func (l *Line) SetColor(cr *cairo.Context) {
+	cr.SetSourceRGB(0, 0, 0)
 }
 
-func (l *Line) GetEnd() (x float64, y float64) {
-	return l.XEnd, l.YEnd
+func (l *Line) Draw(cr *cairo.Context) {
+	cr.MoveTo(l.XStart, l.YStart)
+	cr.LineTo(l.XEnd, l.YEnd)
+	cr.Stroke()
 }

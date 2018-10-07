@@ -8,19 +8,15 @@ import (
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 
-	"./primitives"
-	ln "./primitives/line"
+	"github.com/kislenko-artem/gopaint/primitives"
+	ln "github.com/kislenko-artem/gopaint/primitives/line"
 )
 
 var (
 	//line primitives.Line
-	lines       []primitives.Line
+	objects     []primitives.Primitive
 	lineCounter = -1
 )
-
-func init() {
-	//line = ln.New()
-}
 
 func mainInit(mainWin *gtk.ApplicationWindow) {
 	// Преобразуем из объекта именно окно типа gtk.Window
@@ -33,24 +29,24 @@ func mainInit(mainWin *gtk.ApplicationWindow) {
 	mainWin.Connect("button-press-event", func(win *gtk.ApplicationWindow, ev *gdk.Event) {
 		line := ln.New()
 		lineCounter++
-		lines = append(lines, line)
-		event := &gdk.EventButton{ev}
-		lines[lineCounter].SetStart(event.X(), event.Y())
+		objects = append(objects, line)
+		event := &gdk.EventButton{Event: ev}
+		objects[lineCounter].SetStart(event.X(), event.Y())
 	})
 
 	mainWin.Connect("motion-notify-event", func(win *gtk.ApplicationWindow, ev *gdk.Event) {
-		if !lines[lineCounter].IsWait() {
+		if !objects[lineCounter].IsWait() {
 			return
 		}
-		event := &gdk.EventButton{ev}
-		lines[lineCounter].SetEnd(event.X(), event.Y())
+		event := &gdk.EventButton{Event: ev}
+		objects[lineCounter].SetStop(event.X(), event.Y())
 		win.QueueDraw()
 	})
 
 	mainWin.Connect("button-release-event", func(win *gtk.ApplicationWindow, ev *gdk.Event) {
-		event := &gdk.EventButton{ev}
-		lines[lineCounter].SetEnd(event.X(), event.Y())
-		lines[lineCounter].Release()
+		event := &gdk.EventButton{Event: ev}
+		objects[lineCounter].SetStop(event.X(), event.Y())
+		objects[lineCounter].Release()
 		win.QueueDraw()
 	})
 	// Set the default window size.
@@ -65,12 +61,10 @@ func drawWindow(drawWindow *gtk.DrawingArea) {
 		if lineCounter < 0 {
 			return
 		}
-		cr.SetSourceRGB(0, 0, 0)
-		for i := range lines {
-			cr.MoveTo(lines[i].GetStart())
-			cr.LineTo(lines[i].GetEnd())
+		for i := range objects {
+			objects[i].SetColor(cr)
+			objects[i].Draw(cr)
 		}
-		cr.Stroke()
 	})
 
 }
