@@ -10,13 +10,15 @@ import (
 
 	"github.com/kislenko-artem/gopaint/primitives"
 	ln "github.com/kislenko-artem/gopaint/primitives/line"
+	"github.com/kislenko-artem/gopaint/primitives/pencil"
 	"github.com/kislenko-artem/gopaint/property/color"
 )
 
 var (
-	baseColor   color.Color
-	objects     []primitives.Primitive
-	lineCounter = -1
+	baseColor      color.Color
+	objects        []primitives.Primitive
+	primitivesList []glib.IObject
+	objCounter     = -1
 )
 
 func mainInit(mainWin *gtk.ApplicationWindow) {
@@ -26,32 +28,33 @@ func mainInit(mainWin *gtk.ApplicationWindow) {
 	})
 
 	mainWin.Connect("button-press-event", func(win *gtk.ApplicationWindow, ev *gdk.Event) {
-		line := ln.New(baseColor)
-		lineCounter++
-		objects = append(objects, line)
+		log.Println(objCounter, len(objects))
+		if objCounter < 0 {
+			return
+		}
 		event := &gdk.EventButton{Event: ev}
-		objects[lineCounter].SetStart(event.X(), event.Y())
+		objects[objCounter].SetStart(event.X(), event.Y())
 	})
 
 	mainWin.Connect("motion-notify-event", func(win *gtk.ApplicationWindow, ev *gdk.Event) {
-		if lineCounter < 0 {
+		if objCounter < 0 {
 			return
 		}
-		if !objects[lineCounter].IsWait() {
+		if !objects[objCounter].IsWait() {
 			return
 		}
 		event := &gdk.EventButton{Event: ev}
-		objects[lineCounter].SetStop(event.X(), event.Y())
+		objects[objCounter].SetStop(event.X(), event.Y())
 		win.QueueDraw()
 	})
 
 	mainWin.Connect("button-release-event", func(win *gtk.ApplicationWindow, ev *gdk.Event) {
-		if lineCounter < 0 {
+		if objCounter < 0 {
 			return
 		}
 		event := &gdk.EventButton{Event: ev}
-		objects[lineCounter].SetStop(event.X(), event.Y())
-		objects[lineCounter].Release()
+		objects[objCounter].SetStop(event.X(), event.Y())
+		objects[objCounter].Release()
 		win.QueueDraw()
 	})
 
@@ -62,9 +65,6 @@ func mainInit(mainWin *gtk.ApplicationWindow) {
 
 func drawWindow(drawWindow *gtk.DrawingArea) {
 	drawWindow.Connect("draw", func(da *gtk.DrawingArea, cr *cairo.Context) {
-		if lineCounter < 0 {
-			return
-		}
 		for i := range objects {
 			objects[i].SetColor(cr)
 			objects[i].Draw(cr)
@@ -86,12 +86,32 @@ func colorPicker(picker *gtk.ColorButton) {
 	})
 }
 
+func listenCheckingObjects(glibs []glib.IObject, IDs []string) {
+
+	glibs[0].(*gtk.Button).Connect("button-press-event", func(btn *gtk.Button, ev *gdk.Event) {
+		objCounter++
+		log.Println("pencil_btn")
+		pencil := pencil.New(baseColor)
+		pencil.RGB = baseColor.RGB
+		objects = append(objects, pencil)
+	})
+	glibs[1].(*gtk.Button).Connect("button-press-event", func(btn *gtk.Button, ev *gdk.Event) {
+		objCounter++
+		log.Println("line_btn")
+		line := ln.New(baseColor)
+		line.RGB = baseColor.RGB
+		objects = append(objects, line)
+	})
+
+}
+
 func main() {
 	var (
 		err error
 		b   *gtk.Builder
 		obj glib.IObject
 	)
+	primitivesList = make([]glib.IObject, 2)
 
 	gtk.Init(nil)
 
@@ -118,5 +138,14 @@ func main() {
 	}
 	colorPicker(obj.(*gtk.ColorButton))
 
+	if primitivesList[0], err = b.GetObject("pencil_btn"); err != nil {
+		log.Fatal("Ошибка:", err)
+	}
+
+	if primitivesList[1], err = b.GetObject("line_btn"); err != nil {
+		log.Fatal("Ошибка:", err)
+	}
+
+	listenCheckingObjects(primitivesList, []string{"pencil_btn", "line_btn"})
 	gtk.Main()
 }
