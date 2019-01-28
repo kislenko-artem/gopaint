@@ -9,3 +9,7 @@ type rgb struct {
 type Color struct {
 	RGB rgb
 }
+
+func (c *Color) PickColor(newColor *Color) {
+	c = newColor
+}

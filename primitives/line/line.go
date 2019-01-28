@@ -16,7 +16,7 @@ type Line struct {
 }
 
 func New(color color.Color) *Line {
-	return &Line{Color: color}
+	return &Line{Color: color, XStart: -1, YStart: -1}
 }
 
 func (l *Line) IsWait() bool {
@@ -43,6 +43,9 @@ func (l *Line) SetColor(cr *cairo.Context) {
 }
 
 func (l *Line) Draw(cr *cairo.Context) {
+	if l.XStart == -1 && l.YStart == -1 {
+		return
+	}
 	cr.MoveTo(l.XStart, l.YStart)
 	cr.LineTo(l.XEnd, l.YEnd)
 	cr.Stroke()

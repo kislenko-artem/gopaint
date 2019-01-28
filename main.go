@@ -19,7 +19,21 @@ var (
 	objects        []primitives.Primitive
 	primitivesList []glib.IObject
 	objCounter     = -1
+	lastType       string
 )
+
+func addObject(objType string) {
+	lastType = objType
+	var newObject primitives.Primitive
+	switch objType {
+	case "line":
+		newObject = ln.New(baseColor)
+	case "pencil":
+		newObject = pencil.New(baseColor)
+	}
+	objCounter++
+	objects = append(objects, newObject)
+}
 
 func mainInit(mainWin *gtk.ApplicationWindow) {
 
@@ -28,7 +42,6 @@ func mainInit(mainWin *gtk.ApplicationWindow) {
 	})
 
 	mainWin.Connect("button-press-event", func(win *gtk.ApplicationWindow, ev *gdk.Event) {
-		log.Println(objCounter, len(objects))
 		if objCounter < 0 {
 			return
 		}
@@ -55,6 +68,7 @@ func mainInit(mainWin *gtk.ApplicationWindow) {
 		event := &gdk.EventButton{Event: ev}
 		objects[objCounter].SetStop(event.X(), event.Y())
 		objects[objCounter].Release()
+		addObject(lastType)
 		win.QueueDraw()
 	})
 
@@ -89,18 +103,10 @@ func colorPicker(picker *gtk.ColorButton) {
 func listenCheckingObjects(glibs []glib.IObject, IDs []string) {
 
 	glibs[0].(*gtk.Button).Connect("button-press-event", func(btn *gtk.Button, ev *gdk.Event) {
-		objCounter++
-		log.Println("pencil_btn")
-		pencil := pencil.New(baseColor)
-		pencil.RGB = baseColor.RGB
-		objects = append(objects, pencil)
+		addObject("pencil")
 	})
 	glibs[1].(*gtk.Button).Connect("button-press-event", func(btn *gtk.Button, ev *gdk.Event) {
-		objCounter++
-		log.Println("line_btn")
-		line := ln.New(baseColor)
-		line.RGB = baseColor.RGB
-		objects = append(objects, line)
+		addObject("line")
 	})
 
 }
